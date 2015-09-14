@@ -34,10 +34,11 @@ def detectInput(vocList, inputStream):
     
 loadData, dataLabel = loadDataSet()
 vocList = createNonRepeatedList(loadData)
+print "The vocList is: "
 print vocList
 
 result = detectInput(vocList, loadData[0])
-print result
+# print result
 
 def trainNaiveBayes(trainMatrix, classLabel):
     numTrainDocs = len(trainMatrix)
@@ -64,9 +65,8 @@ for doc in loadData:
     trainMat.append(detectInput(vocList, doc))
 
 p0,p1,pBase = trainNaiveBayes(trainMat, dataLabel)
-print "trainMat : "
-print trainMat
-#print p0, p1
+#print "trainMat : "
+#print trainMat
 
 # test the algorithm
 def naiveBayesClassify(vec2Classify, p0, p1, pBase):
@@ -77,3 +77,18 @@ def naiveBayesClassify(vec2Classify, p0, p1, pBase):
     else:
         return 0
 
+def testNaiveBayes():
+    loadData, classLabel = loadDataSet()
+    vocList = createNonRepeatedList(loadData)
+    trainMat = []
+    for doc in loadData:
+         trainMat.append(detectInput(vocList, doc))
+    p0, p1, pBase = trainNaiveBayes(array(trainMat), array(classLabel))
+    testInput = ['love', 'my', 'dalmation']
+    thisDoc = array(detectInput(vocList, testInput))
+    print testInput, 'the classified as: ', naiveBayesClassify(thisDoc, p0, p1, pBase)
+    testInput = ['stupid', 'garbage']
+    thisDoc = array(detectInput(vocList, testInput))
+    print testInput, 'the classified as: ', naiveBayesClassify(thisDoc, p0, p1, pBase)
+
+testNaiveBayes()
