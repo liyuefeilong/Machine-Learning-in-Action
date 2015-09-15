@@ -34,6 +34,9 @@ def detectInput(vocList, inputStream):
     
 loadData, dataLabel = loadDataSet()
 vocList = createNonRepeatedList(loadData)
+
+# print "The vocList is: "
+# print vocList
 print "The vocList is: "
 print vocList
 
@@ -91,4 +94,132 @@ def testNaiveBayes():
     thisDoc = array(detectInput(vocList, testInput))
     print testInput, 'the classified as: ', naiveBayesClassify(thisDoc, p0, p1, pBase)
 
-testNaiveBayes()
+# testNaiveBayes()
+
+# test email
+
+import re
+
+def bagOfWords2VecMN(vocList, inputStream):
+    returnVec = [0]*len(vocList)
+    for word in inputStream:
+        if word in vocList:
+            returnVec[vocList.index(word)] += 1
+    return returnVec
+
+# split & compile test 
+mysent = "This book is the best book in Python or M.L. I have ever laid!"
+print mysent.split()
+
+regEx = re.compile('\\W*')
+listOfToken = regEx.split(mysent)
+print listOfToken
+
+tok = [tok.lower() for tok in listOfToken if len(tok) > 0]
+print tok
+
+emailText = open('email/ham/6.txt').read()
+listOfToken = regEx.split(emailText)
+tok = [tok.lower() for tok in listOfToken if len(tok) > 2]
+print tok
+
+# test the algorithm
+def textSplit(String):
+    import re
+    listOfToken = re.split(r'\W*', String)
+    return [tok.lower() for tok in listOfToken if len(tok) > 2]
+
+def spamTest():
+    docList = []; classList = []; fullText = []
+    for i in range(1,26):
+        wordList = textSplit(open('email/spam/%d.txt' %i).read())
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(1)
+        wordList = textSplit(open('email/ham/%d.txt' %i).read())
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(0)     
+    vocList = createNonRepeatedList(docList)
+    trainingSet = range(50); testSet = []
+    for i in range(10): # test set
+        randIndex = int(random.uniform(0, len(trainingSet)))
+        testSet.append(trainingSet[randIndex])
+        del(trainingSet[randIndex])
+    trainMat = []; trainClass = []
+    for docIndex in trainingSet:
+        trainMat.append(bagOfWords2VecMN(vocList, docList[docIndex]))
+        trainClass.append(classList[docIndex])
+    p0, p1, pBase = trainNaiveBayes(array(trainMat), array(trainClass))
+    errorCount = 0
+    for docIndex in testSet:
+        wordVector = bagOfWords2VecMN(vocList, docList[docIndex])
+        if naiveBayesClassify(wordVector, p0, p1, pBase) != classList[docIndex]:
+            errorCount += 1
+    errorRate = float(errorCount)/ len(testSet)
+    print "The error rate is: ", errorRate
+    return errorRate, fullText
+
+Rate = 0.0
+for i in range(100): 
+    error, a = spamTest()
+    Rate += error
+print 'The average error is: ', (Rate / 100)
+
+# import RSS source
+def calcFreq(vocList, fullText):
+    import operator
+    freqDict = {}
+    for tok in vocList:
+        freqDict[tok] = fullText.count(tok)
+    sortedFreq = sorted(freqDict.iteritems(), key = operator.itemgetter(1), reverse = True)
+    return sortedFreq[:30]
+
+a, fullText = spamTest()
+print calcFreq(vocList, fullText)
+
+def localWords(feed1, feed0):
+    import feedparser
+    docList = []; classList = []; fullText = []
+    minLen = min(len(feed1['entries']), len(feed0['entries']))
+    for i in range(minLen):
+        wordList = textSplit(feed1['entries'][i]['summary'])
+        docList.append(wordList)
+        fullText.append(docList)
+        classList.append(1)
+        wordList = textSplit(feed0['entries'][i]['summary'])
+        docList.append(wordList)
+        fullText.append(docList)
+        classList.append(0)
+    vocList = createNonRepeatedList(docList)
+    top30Words = calcFreq(vocList, fullText)
+    for delWord in top30Words:
+        if delWord[0] in vocList:
+            vocList.remove(delWord[0])
+    trainingSet = range(2 * minLen); testSet = []
+    for i in range(20):
+        randIndex = int(random.uniform(0, len(trainingSet)))
+        testSet.append(trainingSet[randIndex])
+        del(trainingSet[randIndex])
+    trainMat = []; trainClass = []
+    for docIndex in trainingSet:
+        trainMat.append(bagOfWords2VecMN(vocList, docList[docIndex]))
+        trainClass.append(classList[docIndex])
+    p0, p1, pBase = trainNaiveBayes(array(trainMat), array(trainClass))
+    errorCount = 0
+    for docIndex in testSet:  # test
+        wordVector = bagOfWords2VecMN(vocList, docList[docIndex])
+        if naiveBayesClassify(wordVector, p0, p1, pBase) != classList[docIndex]:
+            errorCount += 1
+    print 'RSS source...The error rate is: ', float(errorCount) / len(testSet)
+    return vocList
+
+
+def testLocalWords():
+    import feedparser
+    ny = feedparser.parse('http://newyork.craigslist.org/stp/index.rss')
+    sf = feedparser.parse('http://sfbay.craigslist.org/stp/index.rss')
+    vocList = localWords(ny, sf)
+
+testLocalWords()
+
