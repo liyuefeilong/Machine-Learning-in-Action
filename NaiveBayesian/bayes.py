@@ -212,7 +212,7 @@ def localWords(feed1, feed0):
         if naiveBayesClassify(wordVector, p0, p1, pBase) != classList[docIndex]:
             errorCount += 1
     print 'RSS source...The error rate is: ', float(errorCount) / len(testSet)
-    return vocList
+    return vocList, p0, p1
 
 
 def testLocalWords():
@@ -220,6 +220,25 @@ def testLocalWords():
     ny = feedparser.parse('http://newyork.craigslist.org/stp/index.rss')
     sf = feedparser.parse('http://sfbay.craigslist.org/stp/index.rss')
     vocList = localWords(ny, sf)
+    return ny, sf
 
-testLocalWords()
+ny, sf = testLocalWords()
 
+def getTopWords(ny, sf):
+    import operator
+    vocList, p0, p1 = localWords(ny, sf)
+    topNY = [];topSF = []
+    for i in range(len(p0)):
+        if p0[i] > -6.0:
+            topSF.append((vocList[i], p0[i]))
+        if p1[i] > -6.0:
+            topNY.append((vocList[i], p1[i]))     
+    sortedSF = sorted(topSF, key=lambda pair: pair[1], reverse = True)
+    print "SF**SF**SF**SF**SF**SF**SF**SF**SF**SF**SF**SF**SF**SF"
+    for item in sortedSF:
+        print item[0]
+    sortedNY = sorted(topNY, key=lambda pair: pair[1], reverse = True)
+    for item in sortedNY:
+        print item[0]
+        
+getTopWords(ny, sf)
